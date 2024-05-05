@@ -1,0 +1,107 @@
+# Find files containing a string and optionally open them in RStudio
+catch () {
+   out="$($@)" 
+   nl <<< "$out"
+   r=("${(@f)out}") 
+}
+
+
+openR() {
+    # Check if array is provided
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: openR <index>"
+        return 1
+    fi
+
+    local index=$1
+
+    # Check if the specified index is a valid integer
+    if ! [[ $index =~ ^[0-9]+$ ]]; then
+        echo "Error: Index must be a positive integer."
+        return 1
+    fi
+
+    # Check if the specified index is within the bounds of the array
+    if [[ $index -lt 1 || $index -gt ${#r[@]} ]]; then
+        echo "Error: Index out of range."
+        return 1
+    fi
+
+    # Extract substring up to the first colon using awk
+    local selected_item=$(echo "${r[$index]}" | awk -F ':' '{print $1}')
+    open -a RStudio "$selected_item"
+}
+
+
+findR() {
+    # Default values
+    local dir="/Users/Shiraz/Documents/Do"
+    local limit=999999
+    local open=0
+    local print_filenames=0
+    
+    # Parse optional arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -d|--dir)
+                if [[ -d $2 ]]; then
+                    dir=$2
+                else
+                    echo "Error: Directory '$2' does not exist."
+                    return 1
+                fi
+                shift 2
+                ;;
+            -l|--limit)
+                limit=$2
+                shift 2
+                ;;
+            -o|--open)
+                open=1
+                shift
+                ;;
+            -f|--filenames)
+                print_filenames=1
+                shift
+                ;;
+            *)
+                # No more options, consider as search string
+                break
+                ;;
+        esac
+    done
+
+    # Check if search string is provided
+    if [[ -z $1 ]]; then
+        echo "Error: No search string provided."
+        return 1
+    fi
+
+    # Check if specified directory exists
+    if [[ ! -d $dir ]]; then
+        echo "Error: Directory '$dir' does not exist."
+        return 1
+    fi
+
+    # Search for specified pattern in .R, .Rmd, and .do files
+    results=$(grep -i -r --include=\*.{R,Rmd,do} --color=always -E "$1" "$dir" | head -n $limit)
+    if [[ -z "$results" ]]; then
+        echo "Error: No results found."
+        return 1
+    fi
+
+    # Print only filenames if -f is specified
+    if [[ $print_filenames -eq 1 ]]; then
+        results=$(grep -i -r --include=\*.{R,Rmd,do} --color=always -E "$1" "$dir" | head -n $limit | cut -d ':' -f 1 | uniq)
+        catch echo "$results"
+    else
+        catch echo "$results"
+    fi
+
+    # Open search results in RStudio if specified
+    if [[ $open -eq 1 ]]; then
+        while IFS= read -r file; do
+            open -a RStudio "$file"
+        done < <(echo "$results" | cut -d ':' -f 1 | uniq)
+    fi
+}
