@@ -27,7 +27,7 @@ findR [OPTIONS] pattern
 
 ### Options
 
-- **-d, --dir**: Specify the directory to search in. By default, it searches in `/Users/Shiraz/Documents/Do`.
+- **-d, --dir**: Specify the directory to search in. By default, it searches in `/Users/`.
 - **-l, --limit**: Limit the number of search results to display. By default, it shows up to 999999 results.
 - **-o, --open**: Open the matching files in RStudio.
 - **-f, --filenames**: Print only the filenames containing the matching patterns.
